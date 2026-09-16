@@ -2,8 +2,7 @@
   "_comment": [
     "ssh-mcp MCP server config example.",
     "Copy the 'ssh-mcp' block below into your MCP client's config file.",
-    "The 'command' path below is already this project's real venv interpreter;",
-    "update it only if the project moves.",
+    "Replace /path/to/ssh-mcp with this project's absolute path.",
     "",
     "Launch rules - these matter for every stdio MCP client:",
     "1) Do NOT add a 'cwd' field. Some clients drop it when spawning the stdio",
@@ -18,12 +17,12 @@
     "Connection details are NOT configured here. Every tool call carries its",
     "own 'host' + 'user' and authentication material (password or",
     "ssh_key_filepath). The MCP server is stateless: it does not read or write",
-    "credential files, aliases, or connection profiles. Only SSH_LOG_LEVEL is",
-    "read for logging."
+    "credential files, aliases, or connection profiles. Environment variables",
+    "only control server behavior such as logging, HTTP auth, and host-key policy."
   ],
   "mcpServers": {
     "ssh-mcp": {
-      "command": "/Users/sundonglai/ai/vscode/study/PYTHON/ssh-mcp/.venv/bin/python",
+      "command": "/path/to/ssh-mcp/.venv/bin/python",
       "args": [
         "-m",
         "ssh_mcp.mcp_server"

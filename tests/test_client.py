@@ -11,13 +11,6 @@ from ssh_mcp import client as client_module
 from ssh_mcp.config import DEFAULT_CONNECT_TIMEOUT
 
 
-@pytest.fixture(autouse=True)
-def _isolated_cache(tmp_path, monkeypatch):
-    """Point the credential cache at a throwaway file, never the real one."""
-    monkeypatch.setenv("SSH_CREDENTIALS_FILE", str(tmp_path / "credentials.json"))
-    return tmp_path
-
-
 class _CapturingClient:
     """Stands in for ``RemoteClient``, recording its constructor arguments."""
 

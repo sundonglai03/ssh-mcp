@@ -14,7 +14,6 @@ from ssh_mcp.config import (
     DEFAULT_TIMEOUT,
     resolve_connection,
 )
-from ssh_mcp.credentials import remember
 
 
 @pytest.fixture(autouse=True)
@@ -27,7 +26,6 @@ def _hostile_env(monkeypatch, tmp_path):
     monkeypatch.setenv("SSH_KEY_FILEPATH", "/env/key")
     monkeypatch.setenv("SSH_TIMEOUT", "7.5")
     monkeypatch.setenv("SSH_REMOTE_PATH", "/env/path")
-    monkeypatch.setenv("SSH_CREDENTIALS_FILE", str(tmp_path / "credentials.json"))
 
 
 def test_arguments_supply_every_value():

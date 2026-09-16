@@ -17,7 +17,12 @@ def test_package_imports_regardless_of_cwd():
     original = os.getcwd()
     try:
         os.chdir("/")
-        for name in ("ssh_mcp", "ssh_mcp.client", "ssh_mcp.server", "ssh_mcp.mcp_server"):
+        for name in (
+            "ssh_mcp",
+            "ssh_mcp.client",
+            "ssh_mcp.server",
+            "ssh_mcp.mcp_server",
+        ):
             importlib.import_module(name)
     finally:
         os.chdir(original)

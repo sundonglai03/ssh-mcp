@@ -53,7 +53,7 @@ from .config import (
     DEFAULT_REMOTE_PATH,
     DEFAULT_TIMEOUT,
 )
-from .http_auth import BearerTokenMiddleware
+from .http_auth import BearerTokenMiddleware, HealthEndpointMiddleware
 
 server = MCPServer("ssh-mcp", version=__version__)
 
@@ -76,7 +76,9 @@ def _oserror_text(exc: OSError) -> str:
     return str(exc)
 
 
-CONNECTION_ARGS = "连接信息由本次调用提供：传 host + user，以及 password 或 ssh_key_filepath。"
+CONNECTION_ARGS = (
+    "连接信息由本次调用提供：传 host + user，以及 password 或 ssh_key_filepath。"
+)
 
 HostArg = Annotated[
     str | None,
@@ -157,7 +159,9 @@ def _describe_error(exc: BaseException) -> str:
     if isinstance(exc, IsADirectoryError):
         return f"目标是目录而非文件（{_oserror_text(exc)}）。下载只支持单个文件。"
     if isinstance(exc, PermissionError):
-        return f"权限不足（{_oserror_text(exc)}）。请检查本地目录写权限或远端路径读权限。"
+        return (
+            f"权限不足（{_oserror_text(exc)}）。请检查本地目录写权限或远端路径读权限。"
+        )
     if isinstance(exc, OSError):
         return f"网络或文件系统错误（{type(exc).__name__}：{_oserror_text(exc)}）。"
     if isinstance(exc, SCPException):
@@ -242,8 +246,7 @@ def ssh_execute_command(
     name="ssh_upload_directory",
     description=(
         "Upload a local directory or file into a remote directory over SCP. "
-        "上传本地目录或文件到远端目录，按 scp -r 语义保留目录名。"
-        + CONNECTION_ARGS
+        "上传本地目录或文件到远端目录，按 scp -r 语义保留目录名。" + CONNECTION_ARGS
     ),
 )
 def ssh_upload_directory(
@@ -299,8 +302,7 @@ def ssh_upload_directory(
     name="ssh_download_file",
     description=(
         "Download a file from a remote SSH host to a local path. "
-        "把远端单个文件下载到本地。"
-        + CONNECTION_ARGS
+        "把远端单个文件下载到本地。" + CONNECTION_ARGS
     ),
 )
 def ssh_download_file(
@@ -373,7 +375,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         help="MCP transport to use; default: stdio",
     )
     parser.add_argument("--host", default="127.0.0.1", help="Bind host for HTTP mode")
-    parser.add_argument("--port", type=int, default=8000, help="Bind port for HTTP mode")
+    parser.add_argument(
+        "--port", type=int, default=8000, help="Bind port for HTTP mode"
+    )
     parser.add_argument(
         "--path",
         default="/mcp",
@@ -390,31 +394,24 @@ def main(argv: Sequence[str] | None = None) -> None:
         anyio.run(server.run_stdio_async)
         return
 
-    if not parsed.auth_token:
-        server.run(
-            transport="streamable-http",
-            host=parsed.host,
-            port=parsed.port,
-            streamable_http_path=parsed.path,
-        )
-        return
+    _run_http(parsed)
 
+
+def create_http_app(*, host: str, path: str, token: str | None):
+    app = server.streamable_http_app(streamable_http_path=path, host=host)
+    app = HealthEndpointMiddleware(app)
+    return BearerTokenMiddleware(app, token) if token else app
+
+
+def _run_http(parsed: argparse.Namespace) -> None:
     import uvicorn
 
-    async def serve() -> None:
-        app = server.streamable_http_app(
-            streamable_http_path=parsed.path,
-            host=parsed.host,
-        )
-        config = uvicorn.Config(
-            BearerTokenMiddleware(app, parsed.auth_token),
-            host=parsed.host,
-            port=parsed.port,
-            log_level=server.settings.log_level.lower(),
-        )
-        await uvicorn.Server(config).serve()
-
-    anyio.run(serve)
+    uvicorn.run(
+        create_http_app(host=parsed.host, path=parsed.path, token=parsed.auth_token),
+        host=parsed.host,
+        port=parsed.port,
+        log_level=server.settings.log_level.lower(),
+    )
 
 
 __all__ = [

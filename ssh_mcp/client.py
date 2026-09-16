@@ -146,12 +146,21 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
 
-    parser.add_argument("action", nargs="?", choices=["upload", "execute", "download"], help="要执行的动作")
+    parser.add_argument(
+        "action",
+        nargs="?",
+        choices=["upload", "execute", "download"],
+        help="要执行的动作",
+    )
     parser.add_argument("--host", help="远程主机地址")
     parser.add_argument("--user", help="SSH 用户名")
-    parser.add_argument("--password", default=None, help="SSH 密码；与 --ssh-key-filepath 至少给一个")
     parser.add_argument(
-        "--ssh-key-filepath", default=None, help="SSH 私钥路径；与 --password 至少给一个"
+        "--password", default=None, help="SSH 密码；与 --ssh-key-filepath 至少给一个"
+    )
+    parser.add_argument(
+        "--ssh-key-filepath",
+        default=None,
+        help="SSH 私钥路径；与 --password 至少给一个",
     )
     parser.add_argument(
         "--remote-path", default=None, help=f"远程上传目录，默认 {DEFAULT_REMOTE_PATH}"

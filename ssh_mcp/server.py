@@ -185,7 +185,9 @@ class RemoteClient:
                 f"无法创建远程目录：{remote_path}（远端输出：{output.strip() or '<empty>'}）"
             )
 
-    def _upload_single_path(self, local_path: str, recursive: bool | None = None) -> None:
+    def _upload_single_path(
+        self, local_path: str, recursive: bool | None = None
+    ) -> None:
         """Upload a single local file or directory using ``scp -r`` semantics.
 
         A directory lands as ``<remote_path>/<directory name>/`` - the source
@@ -206,9 +208,13 @@ class RemoteClient:
             return
 
         self.scp.put(source, remote_path=self.remote_path, recursive=False)
-        LOGGER.info(f"已完成上传文件 {source} 到 {self.remote_path}（主机：{self.host}）")
+        LOGGER.info(
+            f"已完成上传文件 {source} 到 {self.remote_path}（主机：{self.host}）"
+        )
 
-    def bulk_upload(self, filepaths: str | List[str], recursive: bool | None = None) -> None:
+    def bulk_upload(
+        self, filepaths: str | List[str], recursive: bool | None = None
+    ) -> None:
         """Upload one file, one directory, or a list of paths to the remote host."""
         try:
             sources = (
@@ -284,7 +290,9 @@ class RemoteClient:
                 return False
             time.sleep(min(0.2, remaining))
 
-    def _format_command_result(self, cmd: str, exit_status: int, output: str, error: str) -> str:
+    def _format_command_result(
+        self, cmd: str, exit_status: int, output: str, error: str
+    ) -> str:
         """Build a structured result string for MCP clients and CLI consumers."""
         lines = [
             f"Command: {cmd}",

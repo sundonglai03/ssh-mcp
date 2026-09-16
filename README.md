@@ -44,15 +44,16 @@ docker compose down
 ```
 
 镜像名为 `sundonglai/ssh-mcp:latest`，容器名为 `ssh-mcp`。默认监听
-`127.0.0.1:8001`。服务不保存凭据；本地文件通过 `./work:/work` 映射。
+`127.0.0.1:8001`。健康检查为 `http://127.0.0.1:8001/health`。服务不保存凭据、
+主机别名或兼容缓存；本地文件通过 `./work:/work` 映射。
 
 如果使用宿主机私钥，在 Compose 中增加：
 
 ```yaml
-- ${HOME}/.ssh:/root/.ssh:ro
+- ${HOME}/.ssh:/home/ssh-mcp/.ssh:ro
 ```
 
-工具参数使用容器路径，例如 `/root/.ssh/id_ed25519` 和 `/work/app.tar.gz`。
+工具参数使用容器路径，例如 `/home/ssh-mcp/.ssh/id_ed25519` 和 `/work/app.tar.gz`。
 如果设置了 `SSH_STRICT_HOST_KEYS=true`，该挂载目录还应包含已核对过的
 `known_hosts`；默认内网模式不需要手动维护它。
 
@@ -100,8 +101,7 @@ ssh_execute_command(command="uptime", host="10.0.0.5", user="root", password="..
 ssh_mcp/
 ├── mcp_server.py  # MCP 工具和 transport 入口
 ├── client.py      # SSH/SCP 业务客户端
-├── config.py      # 参数校验
-├── credentials.py # 历史本地模块；MCP 工具不使用
+├── config.py      # 单次调用参数校验
 └── server.py      # Paramiko 底层连接
 ```
 

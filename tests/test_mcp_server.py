@@ -7,6 +7,7 @@ from pathlib import Path
 import anyio
 from mcp.server.mcpserver.exceptions import ToolError
 from paramiko.ssh_exception import AuthenticationException
+from starlette.testclient import TestClient
 
 from ssh_mcp.server import DEFAULT_COMMAND_TIMEOUT, RemoteClient
 
@@ -24,7 +25,17 @@ def test_ssh_execute_command_returns_command_output(monkeypatch):
     module = importlib.import_module("ssh_mcp.mcp_server")
 
     def fake_execute_remote_commands(
-        *, commands, host, user, password, ssh_key_filepath, port, timeout, connect_timeout=None, name=None, alias=None
+        *,
+        commands,
+        host,
+        user,
+        password,
+        ssh_key_filepath,
+        port,
+        timeout,
+        connect_timeout=None,
+        name=None,
+        alias=None,
     ):
         assert commands == ["echo hello"]
         return "Command: echo hello\nExit code: 0\nStdout:\nhello from remote\nStderr:\n<empty>"
@@ -85,7 +96,9 @@ def test_execute_commands_returns_failure_details_without_raising(monkeypatch):
         remote_path="/tmp",
         port=22,
     )
-    monkeypatch.setattr(RemoteClient, "connection", property(lambda self: FakeConnection()))
+    monkeypatch.setattr(
+        RemoteClient, "connection", property(lambda self: FakeConnection())
+    )
 
     result = client.execute_commands(["ls /nope"])
 
@@ -176,7 +189,17 @@ def test_ssh_execute_command_raises_on_real_connection_error(monkeypatch):
     module = importlib.import_module("ssh_mcp.mcp_server")
 
     def fake_execute_remote_commands(
-        *, commands, host, user, password, ssh_key_filepath, port, timeout, connect_timeout=None, name=None, alias=None
+        *,
+        commands,
+        host,
+        user,
+        password,
+        ssh_key_filepath,
+        port,
+        timeout,
+        connect_timeout=None,
+        name=None,
+        alias=None,
     ):
         raise ConnectionError("Connection refused by remote host")
 
@@ -206,7 +229,17 @@ def test_tool_call_reports_failure_detail_to_client(monkeypatch):
     module = importlib.import_module("ssh_mcp.mcp_server")
 
     def fake_execute_remote_commands(
-        *, commands, host, user, password, ssh_key_filepath, port, timeout, connect_timeout=None, name=None, alias=None
+        *,
+        commands,
+        host,
+        user,
+        password,
+        ssh_key_filepath,
+        port,
+        timeout,
+        connect_timeout=None,
+        name=None,
+        alias=None,
     ):
         raise ConnectionError("Connection refused by remote host")
 
@@ -240,7 +273,9 @@ def test_describe_error_classifies_common_failures():
     assert "无法解析" in describe(socket.gaierror("Name or service not known"))
     assert "被拒绝" in describe(ConnectionRefusedError(111, "Connection refused"))
     assert "超时" in describe(TimeoutError("timed out"))
-    assert "不存在" in describe(FileNotFoundError("Upload source does not exist: /nope"))
+    assert "不存在" in describe(
+        FileNotFoundError("Upload source does not exist: /nope")
+    )
     assert "非文件" in describe(IsADirectoryError(21, "Is a directory"))
     assert "权限" in describe(PermissionError(13, "Permission denied"))
 
@@ -249,9 +284,21 @@ def test_ssh_execute_command_can_fail_on_non_zero_exit(monkeypatch):
     module = importlib.import_module("ssh_mcp.mcp_server")
 
     def fake_execute_remote_commands(
-        *, commands, host, user, password, ssh_key_filepath, port, timeout, connect_timeout=None, name=None, alias=None
+        *,
+        commands,
+        host,
+        user,
+        password,
+        ssh_key_filepath,
+        port,
+        timeout,
+        connect_timeout=None,
+        name=None,
+        alias=None,
     ):
-        return "Command: ls /nope\nExit code: 2\nStdout:\n<empty>\nStderr:\nno such file"
+        return (
+            "Command: ls /nope\nExit code: 2\nStdout:\n<empty>\nStderr:\nno such file"
+        )
 
     monkeypatch.setattr(module, "execute_remote_commands", fake_execute_remote_commands)
 
@@ -264,24 +311,46 @@ def test_main_supports_streamable_http_transport(monkeypatch):
 
     calls = {}
 
-    def fake_run(transport=None, **kwargs):
-        calls["transport"] = transport
-        calls["kwargs"] = kwargs
+    def fake_run_http(parsed):
+        calls["parsed"] = parsed
 
     def fake_execute_remote_commands(
-        *, commands, host, user, password, ssh_key_filepath, port, timeout, connect_timeout=None, name=None, alias=None
+        *,
+        commands,
+        host,
+        user,
+        password,
+        ssh_key_filepath,
+        port,
+        timeout,
+        connect_timeout=None,
+        name=None,
+        alias=None,
     ):
-        return "Command: ls /nope\nExit code: 2\nStdout:\n<empty>\nStderr:\nno such file"
+        return (
+            "Command: ls /nope\nExit code: 2\nStdout:\n<empty>\nStderr:\nno such file"
+        )
 
-    monkeypatch.setattr(module.server, "run", fake_run)
+    monkeypatch.setattr(module, "_run_http", fake_run_http)
     monkeypatch.setattr(module, "execute_remote_commands", fake_execute_remote_commands)
 
-    module.main(["--transport", "streamable-http", "--host", "0.0.0.0", "--port", "9001", "--path", "/mcp"])
+    module.main(
+        [
+            "--transport",
+            "streamable-http",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "9001",
+            "--path",
+            "/mcp",
+        ]
+    )
 
-    assert calls["transport"] == "streamable-http"
-    assert calls["kwargs"]["host"] == "0.0.0.0"
-    assert calls["kwargs"]["port"] == 9001
-    assert calls["kwargs"]["streamable_http_path"] == "/mcp"
+    assert calls["parsed"].transport == "streamable-http"
+    assert calls["parsed"].host == "0.0.0.0"
+    assert calls["parsed"].port == 9001
+    assert calls["parsed"].path == "/mcp"
 
     try:
         module.ssh_execute_command(
@@ -292,6 +361,15 @@ def test_main_supports_streamable_http_transport(monkeypatch):
         assert "远程命令以非 0 状态退出" in str(exc)
         assert "Exit code: 2" in str(exc)
         assert "no such file" in str(exc)
+
+
+def test_http_health_is_public_when_mcp_uses_a_token():
+    module = importlib.import_module("ssh_mcp.mcp_server")
+    app = module.create_http_app(host="127.0.0.1", path="/mcp", token="secret")
+
+    with TestClient(app) as client:
+        assert client.get("/health").json() == {"status": "ok"}
+        assert client.post("/mcp", json={}).status_code == 401
 
 
 def test_bulk_upload_missing_source_raises_clear_error(monkeypatch, tmp_path):
@@ -324,11 +402,13 @@ def test_bulk_upload_directory_keeps_basename_like_scp_r(monkeypatch, tmp_path):
             self.calls = []
 
         def put(self, source, remote_path=None, recursive=False):
-            self.calls.append({
-                "source": source,
-                "remote_path": remote_path,
-                "recursive": recursive,
-            })
+            self.calls.append(
+                {
+                    "source": source,
+                    "remote_path": remote_path,
+                    "recursive": recursive,
+                }
+            )
 
     class FakeStdin:
         def close(self):
@@ -402,7 +482,9 @@ def test_bulk_upload_single_file_lands_inside_remote_path(monkeypatch, tmp_path)
             self.calls = []
 
         def put(self, source, remote_path=None, recursive=False):
-            self.calls.append({"source": source, "remote_path": remote_path, "recursive": recursive})
+            self.calls.append(
+                {"source": source, "remote_path": remote_path, "recursive": recursive}
+            )
 
     class FakeStdin:
         def close(self):
@@ -458,7 +540,9 @@ def test_every_tool_parameter_is_documented_in_the_schema():
     """
     module = importlib.import_module("ssh_mcp.mcp_server")
 
-    schemas = {tool.name: tool.input_schema for tool in anyio.run(module.server.list_tools)}
+    schemas = {
+        tool.name: tool.input_schema for tool in anyio.run(module.server.list_tools)
+    }
 
     assert set(schemas) == {
         "ssh_execute_command",
@@ -478,7 +562,9 @@ def test_every_tool_parameter_is_documented_in_the_schema():
 def test_connect_timeout_is_published_in_the_schema():
     module = importlib.import_module("ssh_mcp.mcp_server")
 
-    schemas = {tool.name: tool.input_schema for tool in anyio.run(module.server.list_tools)}
+    schemas = {
+        tool.name: tool.input_schema for tool in anyio.run(module.server.list_tools)
+    }
 
     for tool in ("ssh_execute_command", "ssh_upload_directory", "ssh_download_file"):
         assert "connect_timeout" in schemas[tool]["properties"]
@@ -499,14 +585,26 @@ def test_ssh_execute_command_forwards_connect_timeout(monkeypatch):
     seen = {}
 
     def fake_execute_remote_commands(
-        *, commands, host, user, password, ssh_key_filepath, port, timeout, connect_timeout=None, name=None, alias=None
+        *,
+        commands,
+        host,
+        user,
+        password,
+        ssh_key_filepath,
+        port,
+        timeout,
+        connect_timeout=None,
+        name=None,
+        alias=None,
     ):
         seen["connect_timeout"] = connect_timeout
         return "Command: uptime\nExit code: 0\nStdout:\nup\nStderr:\n<empty>"
 
     monkeypatch.setattr(module, "execute_remote_commands", fake_execute_remote_commands)
 
-    module.ssh_execute_command("uptime", "example.com", "root", "pw", connect_timeout=2.5)
+    module.ssh_execute_command(
+        "uptime", "example.com", "root", "pw", connect_timeout=2.5
+    )
 
     assert seen["connect_timeout"] == 2.5
 

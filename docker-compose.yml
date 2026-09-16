@@ -1,3 +1,5 @@
+name: ssh-mcp
+
 services:
   ssh-mcp:
     build: .
@@ -9,10 +11,16 @@ services:
     volumes:
       - ./work:/work
       # Optional for key authentication:
-      # - ${HOME}/.ssh:/root/.ssh:ro
+      # - ${HOME}/.ssh:/home/ssh-mcp/.ssh:ro
       # The same read-only mount supplies known_hosts for strict host-key checks.
     environment:
       SSH_MCP_AUTH_TOKEN: ${SSH_MCP_AUTH_TOKEN:-}
       SSH_STRICT_HOST_KEYS: ${SSH_STRICT_HOST_KEYS:-}
       # Internal-network default accepts new host keys.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
     # Put an authenticated TLS reverse proxy in front before remote access.
