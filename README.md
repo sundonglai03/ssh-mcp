@@ -43,9 +43,9 @@ docker compose logs -f ssh-mcp
 docker compose down
 ```
 
-镜像名为 `sundonglai/ssh-mcp:latest`，容器名为 `ssh-mcp`。默认监听
-`127.0.0.1:8001`。服务不保存凭据、主机别名或兼容缓存；本地文件通过
-`./work:/work` 映射。
+镜像名为 `sundonglai/ssh-mcp:latest`，容器名为 `ssh-mcp`。Compose 默认监听宿主机所有
+网卡的 `8001`，局域网内用 `http://<宿主机IP>:8001/mcp` 访问。服务不保存凭据、
+主机别名或兼容缓存；本地文件通过 `./work:/work` 映射。
 
 如果使用宿主机私钥，在 Compose 中增加：
 

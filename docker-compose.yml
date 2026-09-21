@@ -7,7 +7,8 @@ services:
     container_name: ssh-mcp
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8001:8001"
+      # 局域网内使用：直接监听宿主机所有网卡。
+      - "0.0.0.0:8001:8001"
     volumes:
       - ./work:/work
       # Optional for key authentication:
@@ -17,4 +18,4 @@ services:
       SSH_MCP_AUTH_TOKEN: ${SSH_MCP_AUTH_TOKEN:-}
       SSH_STRICT_HOST_KEYS: ${SSH_STRICT_HOST_KEYS:-}
       # Internal-network default accepts new host keys.
-    # Put an authenticated TLS reverse proxy in front before remote access.
+    # 跨不可信网络访问时，请在前面加一层带认证的反向代理。
